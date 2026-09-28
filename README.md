@@ -9,7 +9,7 @@
 
 Esse repositório contém a interface desenvolvida em Next.js e também o `compose.yml` responsável por subir a aplicação completa com frontend, backend e PostgreSQL.
 
-O backend possui documentação própria no repositório `trackmyrepo-api`, com detalhes sobre endpoints, arquitetura interna e integração com a GitHub REST API.
+O backend possui documentação própria no repositório `trackmyrepo-api` `https://github.com/GabriielB/trackmyrepo-api`, com detalhes sobre endpoints, arquitetura interna e integração com a GitHub REST API.
 
 ---
 
