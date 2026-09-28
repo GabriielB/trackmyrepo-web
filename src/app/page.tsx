@@ -1,69 +1,122 @@
-import Image from "next/image";
+"use client";
+
+import { useMemo } from "react";
+
+import { MetricCard } from "@/components/dashboard/MetricCard";
+
+import { ProjectCard } from "@/components/projects/ProjectCard";
+import { ProjectForm } from "@/components/projects/ProjectForm";
+import { ProjectsChart } from "@/components/projects/ProjectsChart";
+
+import { useProjects } from "@/hooks/useProjects";
+
+import { formatNumber } from "@/utils/format";
 
 export default function Home() {
+  const {
+    projects,
+    loading,
+    error,
+
+    showOnlyFavorites,
+
+    addProject,
+    toggleFavorite,
+    removeProject,
+    syncProject,
+    changeFavoriteFilter,
+  } = useProjects();
+
+  const totalStars = useMemo(
+    () =>
+      projects.reduce((total, project) => total + project.repository.stars, 0),
+    [projects],
+  );
+
+  const totalForks = useMemo(
+    () =>
+      projects.reduce((total, project) => total + project.repository.forks, 0),
+    [projects],
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <header className="mb-10">
+          <h1 className="text-3xl font-bold">TrackMyRepo</h1>
+
+          <p className="mt-2 text-slate-600">
+            Acompanhe repositórios públicos do GitHub em um único dashboard.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        </header>
+
+        <section className="mb-8">
+          <ProjectForm onSubmit={addProject} />
+        </section>
+
+        {error && (
+          <div className="mb-8 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+            {error}
+          </div>
+        )}
+
+        <section className="mb-8 grid gap-4 sm:grid-cols-3">
+          <MetricCard title="Projetos" value={String(projects.length)} />
+
+          <MetricCard title="Total de stars" value={formatNumber(totalStars)} />
+
+          <MetricCard title="Total de forks" value={formatNumber(totalForks)} />
+        </section>
+
+        {projects.length > 0 && (
+          <section className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-6 text-xl font-semibold">Stars por projeto</h2>
+
+            <ProjectsChart projects={projects} />
+          </section>
+        )}
+
+        <section>
+          <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-xl font-semibold">Projetos monitorados</h2>
+
+              <p className="text-sm text-slate-500">
+                Dados sincronizados com a API do GitHub.
+              </p>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showOnlyFavorites}
+                onChange={(event) => changeFavoriteFilter(event.target.checked)}
+              />
+              Apenas favoritos
+            </label>
+          </div>
+
+          {loading ? (
+            <p className="text-slate-500">Carregando projetos...</p>
+          ) : projects.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+              Nenhum projeto encontrado.
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {projects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onFavorite={() => toggleFavorite(project)}
+                  onRefresh={() => syncProject(project)}
+                  onDelete={() => removeProject(project)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }
