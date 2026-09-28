@@ -1,36 +1,279 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TrackMyRepo Web
 
-## Getting Started
+## Objetivos e Observação
 
-First, run the development server:
+### OBS: Primeiramente peço desculpas por não ter enviado o vídeo, acabei confundindo a data e não consegui gravar tudo a tempo. Tentarei documentar da melhor forma possível, o cenário escolhido foi o 1.1 onde tenho um front-end e uma api que se conectará com uma externa.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+### Objetivo: Frontend do **TrackMyRepo**, uma aplicação web para acompanhamento de repositórios open-source do GitHub de maneira mais agradável e centralizada.
+
+Esse repositório contém a interface desenvolvida em Next.js e também o `compose.yml` responsável por subir a aplicação completa com frontend, backend e PostgreSQL.
+
+O backend possui documentação própria no repositório `trackmyrepo-api`, com detalhes sobre endpoints, arquitetura interna e integração com a GitHub REST API.
+
+---
+
+## Tecnologias
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Axios
+- React Hook Form
+- Recharts
+- Docker
+- Docker Compose
+
+---
+
+## Funcionalidades
+
+A interface permite:
+
+- cadastrar repositórios públicos do GitHub;
+- listar projetos monitorados;
+- favoritar e desfavoritar projetos;
+- visualizar apenas favoritos;
+- atualizar dados do repositório;
+- remover projetos;
+- visualizar métricas do dashboard;
+- visualizar distribuição por linguagem.
+
+---
+
+## Arquitetura
+
+```text
+TrackMyRepo Web
+      │
+      │ REST / JSON
+      ▼
+TrackMyRepo API
+   ┌───────┴────────┐
+   ▼                ▼
+PostgreSQL     GitHub REST API
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O frontend se comunica apenas com a API FastAPI.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
+### Organização
 
-To learn more about Next.js, take a look at the following resources:
+- `app`: páginas, layout e estilos globais;
+- `components`: componentes visuais;
+- `hooks`: estado e ações da interface;
+- `services`: chamadas HTTP;
+- `lib`: configuração do Axios;
+- `types`: contratos TypeScript;
+- `utils`: formatação e cálculos auxiliares.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Executando o projeto completo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Pré-requisitos
 
-## Deploy on Vercel
+É necessário possuir:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Git
+- Docker
+- Docker Compose
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 1. Clone os dois repositórios
+
+```bash
+git clone https://github.com/GabriielB/trackmyrepo-web
+git clone https://github.com/GabriielB/trackmyrepo-api 
+```
+
+
+## 2. Entre no frontend
+
+```bash
+cd trackmyrepo-web
+```
+
+---
+
+## 3. Inicie a aplicação
+
+```bash
+docker compose up --build
+```
+
+O Docker Compose irá iniciar:
+
+```text
+web → Next.js
+api → FastAPI
+db  → PostgreSQL
+```
+
+---
+
+## Endereços
+
+Frontend:
+
+```text
+http://localhost:3000
+```
+
+Swagger da API:
+
+```text
+http://localhost:8000/docs
+```
+
+Health check:
+
+```text
+http://localhost:8000/health
+```
+
+---
+
+## Verificando os containers
+
+```bash
+docker compose ps
+```
+
+Os serviços `web`, `api` e `db` devem estar em execução.
+
+---
+
+## Parando a aplicação
+
+```bash
+docker compose down
+```
+
+Os dados do PostgreSQL permanecem salvos no volume Docker.
+
+Para remover também os dados:
+
+```bash
+docker compose down -v
+```
+
+> O comando acima remove os dados persistidos no banco.
+
+---
+
+## Iniciando novamente
+
+```bash
+docker compose up
+```
+
+Caso o código ou os Dockerfiles tenham sido alterados:
+
+```bash
+docker compose up --build
+```
+
+---
+
+# Teste rápido
+
+Após iniciar a aplicação, acesse:
+
+```text
+http://localhost:3000
+```
+
+Cadastre, por exemplo:
+
+```text
+flutter/flutter
+```
+
+ou:
+
+```text
+fastapi/fastapi
+```
+
+Depois teste:
+
+1. favoritar o projeto;
+2. abrir a aba de favoritos;
+3. atualizar os dados;
+4. remover o projeto.
+
+Essas ações exercitam a comunicação entre frontend, API, PostgreSQL e GitHub REST API.
+
+---
+
+# Desenvolvimento local do frontend
+
+Caso queira executar somente o frontend fora do Docker:
+
+```bash
+npm install
+npm run dev
+```
+
+O frontend ficará disponível em:
+
+```text
+http://localhost:3000
+```
+
+Por padrão, a API é esperada em:
+
+```text
+http://localhost:8000
+```
+
+A URL pode ser configurada pela variável:
+
+```text
+NEXT_PUBLIC_API_URL
+```
+
+---
+
+# Docker
+
+Este repositório possui:
+
+```text
+Dockerfile
+.dockerignore
+compose.yml
+```
+
+O `Dockerfile` é responsável pela imagem do frontend.
+
+O `compose.yml` orquestra:
+
+- frontend;
+- backend;
+- PostgreSQL.
+
+---
+
+# Documentação do backend
+
+Para detalhes sobre:
+
+- endpoints REST;
+- FastAPI;
+- modelos;
+- PostgreSQL;
+- integração com a GitHub REST API;
+- variáveis de ambiente;
+- estrutura interna do backend;
+
+consulte o README do repositório:
+
+```
+https://github.com/GabriielB/trackmyrepo-api
+```
+
+---
