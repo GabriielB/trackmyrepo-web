@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   createProject,
@@ -12,39 +12,108 @@ import {
 
 import { Project } from "@/types/project";
 
+export type ProjectView = "all" | "favorites";
+
+async function fetchProjectLists(view: ProjectView) {
+  const [allProjects, favoriteProjects] = await Promise.all([
+    getProjects(),
+    view === "favorites" ? getProjects(true) : Promise.resolve(null),
+  ]);
+
+  return {
+    allProjects,
+    visibleProjects: favoriteProjects ?? allProjects,
+  };
+}
+
 export function useProjects() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [visibleProjects, setVisibleProjects] = useState<Project[]>([]);
 
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
 
-  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [activeView, setActiveView] = useState<ProjectView>("all");
+  const requestId = useRef(0);
 
   const loadProjects = useCallback(async () => {
+    const currentRequestId = requestId.current + 1;
+    requestId.current = currentRequestId;
+
     try {
-      setLoading(true);
       setError(null);
 
-      const data = await getProjects(showOnlyFavorites ? true : undefined);
+      const {
+        allProjects: fetchedAllProjects,
+        visibleProjects: fetchedVisibleProjects,
+      } = await fetchProjectLists(activeView);
 
-      setProjects(data);
+      if (currentRequestId !== requestId.current) {
+        return;
+      }
+
+      setAllProjects(fetchedAllProjects);
+      setVisibleProjects(fetchedVisibleProjects);
     } catch (error) {
+      if (currentRequestId !== requestId.current) {
+        return;
+      }
+
       setError(
         error instanceof Error
           ? error.message
           : "Não foi possível carregar os projetos.",
       );
     } finally {
-      setLoading(false);
+      if (currentRequestId === requestId.current) {
+        setLoading(false);
+      }
     }
-  }, [showOnlyFavorites]);
+  }, [activeView]);
 
   useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
+    const currentRequestId = requestId.current + 1;
+    requestId.current = currentRequestId;
+    let cancelled = false;
 
-  async function addProject(repository: string) {
+    void fetchProjectLists(activeView)
+      .then(
+        ({
+          allProjects: fetchedAllProjects,
+          visibleProjects: fetchedVisibleProjects,
+        }) => {
+          if (cancelled || currentRequestId !== requestId.current) {
+            return;
+          }
+
+          setAllProjects(fetchedAllProjects);
+          setVisibleProjects(fetchedVisibleProjects);
+        },
+      )
+      .catch((error: unknown) => {
+        if (cancelled || currentRequestId !== requestId.current) {
+          return;
+        }
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar os projetos.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled && currentRequestId === requestId.current) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeView]);
+
+  async function addProject(repository: string): Promise<boolean> {
     try {
       setError(null);
 
@@ -53,6 +122,8 @@ export function useProjects() {
       });
 
       await loadProjects();
+
+      return true;
     } catch (error) {
       const message =
         error instanceof Error
@@ -61,7 +132,7 @@ export function useProjects() {
 
       setError(message);
 
-      throw error;
+      return false;
     }
   }
 
@@ -115,21 +186,32 @@ export function useProjects() {
     }
   }
 
-  function changeFavoriteFilter(enabled: boolean) {
-    setShowOnlyFavorites(enabled);
+  function changeView(view: ProjectView) {
+    if (view !== activeView) {
+      setError(null);
+      setLoading(true);
+      setActiveView(view);
+    }
+  }
+
+  async function reloadProjects() {
+    setLoading(true);
+    await loadProjects();
   }
 
   return {
-    projects,
+    allProjects,
+    visibleProjects,
     loading,
     error,
 
-    showOnlyFavorites,
+    activeView,
 
     addProject,
     toggleFavorite,
     removeProject,
     syncProject,
-    changeFavoriteFilter,
+    changeView,
+    reloadProjects,
   };
 }

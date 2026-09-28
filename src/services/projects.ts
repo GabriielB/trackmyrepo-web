@@ -12,6 +12,20 @@ function getErrorMessage(error: unknown): string {
       return detail;
     }
 
+    if (Array.isArray(detail)) {
+      const messages = detail
+        .map((item) =>
+          typeof item === "object" && item !== null && "msg" in item
+            ? item.msg
+            : null,
+        )
+        .filter((message): message is string => typeof message === "string");
+
+      if (messages.length > 0) {
+        return messages.join(" ");
+      }
+    }
+
     if (error.code === "ECONNABORTED") {
       return "A API demorou muito para responder.";
     }
